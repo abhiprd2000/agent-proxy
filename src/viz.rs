@@ -17,16 +17,16 @@ pub fn generate_html_map() -> Result<String> {
     let html_content = format!(r#"<!DOCTYPE html>
 <html>
 <head>
-    <title>AegisCtx Code Map</title>
+    <title> Code Map</title>
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <style>
         body {{ background-color: #0d1117; color: #c9d1d9; font-family: sans-serif; margin: 0; overflow: hidden; }}
         #mynetwork {{ width: 100vw; height: 100vh; border: none; }}
-        #title {{ position: absolute; top: 10px; left: 20px; z-index: 10; font-weight: bold; }}
+        #title AgentProxy{{ position: absolute; top: 10px; left: 20px; z-index: 10; font-weight: bold; }}
     </style>
 </head>
 <body>
-    <div id="title">AegisCtx Active Architecture</div>
+    <div id="title">AgentProxy Active Architecture</div>
     <div id="mynetwork"></div>
     <script type="text/javascript">
         var nodes = new vis.DataSet({});

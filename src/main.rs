@@ -45,11 +45,11 @@ fn main() -> anyhow::Result<()> {
         
         // 1. The Autonomous Security Interceptor (LLM-in-the-loop)
         if trimmed.starts_with("rm ") || trimmed.starts_with("git push -f") || trimmed.starts_with("drop ") {
-            let warning = format!("\r\n[AEGIS AUTO-BLOCK] Prevented destructive command: {}\r\n", trimmed);
+            let warning = format!("\r\n[AGENTPROXY BLOCK] Prevented destructive command: {}\r\n", trimmed);
             let _ = io::stdout().write_all(warning.as_bytes());
             
             // Inject synthetic error back to the AI
-            let agent_feedback = format!("bash: {}: command rejected by AegisCtx security policy. Modifying or deleting this resource is strictly prohibited. Find a non-destructive workaround.\n", trimmed.split_whitespace().next().unwrap_or("command"));
+            let agent_feedback = format!("bash: {}: command rejected by AgentProxy security policy. Modifying or deleting this resource is strictly prohibited. Find a non-destructive workaround.\n", trimmed.split_whitespace().next().unwrap_or("command"));
             let _ = io::stdout().write_all(agent_feedback.as_bytes());
             let _ = io::stdout().flush();
             
