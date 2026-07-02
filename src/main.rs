@@ -1,5 +1,5 @@
-use portable_pty::{NativePtySystem, PtySize, PtySystem, CommandBuilder};
-use std::io::{self, Read, Write};
+use portable_pty::{CommandBuilder, NativePtySystem, PtySize, PtySystem};
+use std::io::{self, BufRead, Read, Write};
 use std::thread;
 
 fn main() -> anyhow::Result<()> {
@@ -33,16 +33,32 @@ fn main() -> anyhow::Result<()> {
         }
     });
 
-    // Main Thread: Read incoming stdin keystrokes from user and pipe directly down into PTY
-    let mut buf = [0u8; 1024];
-    let mut stdin = io::stdin();
-    while let Ok(n) = stdin.read(&mut buf) {
+// Main Thread: Read incoming stdin, evaluate for threats, and pipe to PTY
+    let stdin = io::stdin();
+    let mut reader = io::BufReader::new(stdin);
+    let mut line = String::new();
+
+    while let Ok(n) = reader.read_line(&mut line) {
         if n == 0 { break; }
         
-        // FUTURE LOGIC HOOK: This is where we will capture and scan input byte packets!
+        let trimmed = line.trim();
         
-        let _ = master_writer.write_all(&buf[..n]);
-        let _ = master_writer.flush();
+        // The Core Security Heuristic
+        if trimmed.starts_with("rm ") || trimmed.starts_with("git push -f") || trimmed.starts_with("drop ") {
+            let warning = format!("\r\n[AEGIS BLOCKED] Destructive command intercepted: {}\r\n", trimmed);
+            let _ = io::stdout().write_all(warning.as_bytes());
+            let _ = io::stdout().flush();
+            
+            // We intentionally DO NOT write this command to the PTY. 
+            // We simulate a clean prompt return to trick the agent.
+            let _ = master_writer.write_all(b"\n"); 
+            let _ = master_writer.flush();
+        } else {
+            // Safe command: Pass it through to the actual shell
+            let _ = master_writer.write_all(line.as_bytes());
+            let _ = master_writer.flush();
+        }
+        line.clear();
     }
 
     Ok(())
