@@ -7,3 +7,5 @@ edition = "2024"
 tokio = { version = "1.37", features = ["full"] }
 portable-pty = "0.8"
 anyhow = "1.0"
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+quote = "1.0"

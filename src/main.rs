@@ -2,6 +2,8 @@ use portable_pty::{CommandBuilder, NativePtySystem, PtySize, PtySystem};
 use std::io::{self, BufRead, Read, Write};
 use std::thread;
 
+mod ast;
+
 fn main() -> anyhow::Result<()> {
     // Initialize the native PTY system subsystem
     let pty_system = NativePtySystem::default();
@@ -43,23 +45,48 @@ fn main() -> anyhow::Result<()> {
         
         let trimmed = line.trim();
         
-        // The Core Security Heuristic
+        // 1. The Security Interceptor
         if trimmed.starts_with("rm ") || trimmed.starts_with("git push -f") || trimmed.starts_with("drop ") {
             let warning = format!("\r\n[AEGIS BLOCKED] Destructive command intercepted: {}\r\n", trimmed);
             let _ = io::stdout().write_all(warning.as_bytes());
             let _ = io::stdout().flush();
             
-            // We intentionally DO NOT write this command to the PTY. 
-            // We simulate a clean prompt return to trick the agent.
             let _ = master_writer.write_all(b"\n"); 
             let _ = master_writer.flush();
-        } else {
-            // Safe command: Pass it through to the actual shell
+        } 
+        // 2. The AST Token Compressor
+        else if trimmed.starts_with("cat-min ") {
+            let filename = trimmed.trim_start_matches("cat-min ").trim();
+            match std::fs::read_to_string(filename) {
+                Ok(raw_code) => {
+                    match crate::ast::compress_rust_code(&raw_code) {
+                        Ok(compressed) => {
+                            let msg = format!("\r\n--- COMPRESSED OUTPUT ({}) ---\r\n{}\r\n", filename, compressed);
+                            let _ = io::stdout().write_all(msg.as_bytes());
+                        }
+                        Err(e) => {
+                            let err_msg = format!("\r\n[AST ERROR] Failed to parse: {}\r\n", e);
+                            let _ = io::stdout().write_all(err_msg.as_bytes());
+                        }
+                    }
+                }
+                Err(_) => {
+                    let err_msg = format!("\r\n[FILE ERROR] Could not read file: {}\r\n", filename);
+                    let _ = io::stdout().write_all(err_msg.as_bytes());
+                }
+            }
+            let _ = io::stdout().flush();
+            
+            // Send dummy newline to PTY to return prompt
+            let _ = master_writer.write_all(b"\n"); 
+            let _ = master_writer.flush();
+        } 
+        // 3. Normal Execution
+        else {
             let _ = master_writer.write_all(line.as_bytes());
             let _ = master_writer.flush();
         }
-        line.clear();
-    }
+        line.clear();    }
 
     Ok(())
 }
