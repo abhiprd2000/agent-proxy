@@ -46,15 +46,22 @@ fn main() -> anyhow::Result<()> {
         
         let trimmed = line.trim();
         
-        // 1. The Security Interceptor
+       // 1. The Autonomous Security Interceptor
         if trimmed.starts_with("rm ") || trimmed.starts_with("git push -f") || trimmed.starts_with("drop ") {
-            let warning = format!("\r\n[AEGIS BLOCKED] Destructive command intercepted: {}\r\n", trimmed);
+            // Alert the human on the screen (passive logging)
+            let warning = format!("\r\n[AEGIS AUTO-BLOCK] Prevented destructive command: {}\r\n", trimmed);
             let _ = io::stdout().write_all(warning.as_bytes());
+            
+            // Feed a synthetic error directly back to the AI Agent so it self-corrects
+            let agent_feedback = format!("bash: {}: command rejected by AegisCtx security policy. Modifying or deleting this resource is strictly prohibited. Find a non-destructive workaround.\n", trimmed.split_whitespace().next().unwrap_or("command"));
+            let _ = io::stdout().write_all(agent_feedback.as_bytes());
             let _ = io::stdout().flush();
             
+            // Send a dummy newline to the PTY to trick the agent into thinking the command finished
             let _ = master_writer.write_all(b"\n"); 
             let _ = master_writer.flush();
-        } 
+        }
+            
         // 2. The AST Token Compressor
         else if trimmed.starts_with("cat-min ") {
             let filename = trimmed.trim_start_matches("cat-min ").trim();
