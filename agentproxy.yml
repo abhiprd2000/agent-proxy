@@ -1,0 +1,10 @@
+deny:
+  - "rm -rf"
+  - "git push --force"
+  - "git push -f"
+
+review:
+  - "curl"
+  - "wget"
+  - "cargo install"
+  - "pip install"

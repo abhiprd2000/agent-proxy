@@ -3,6 +3,7 @@ use std::io::{self, BufRead, Read, Write};
 use std::thread;
 
 mod ast;
+mod config;
 mod policy;
 mod viz;
 

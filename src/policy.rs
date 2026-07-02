@@ -1,3 +1,5 @@
+use crate::config::Config;
+
 pub enum Decision {
     Allow,
     Review(String),
@@ -6,28 +8,28 @@ pub enum Decision {
 
 pub fn evaluate(command: &str) -> Decision {
     let cmd = command.trim();
+    let config = Config::load();
 
-    if cmd.starts_with("rm ") {
-        return Decision::Block(
-            "file deletion command detected".to_string()
-        );
+    if let Some(deny_rules) = config.deny {
+        for rule in deny_rules {
+            if cmd.contains(&rule) {
+                return Decision::Block(format!(
+                    "matched deny rule '{}'",
+                    rule
+                ));
+            }
+        }
     }
 
-    if cmd.starts_with("git push -f")
-        || cmd.starts_with("git push --force")
-    {
-        return Decision::Block(
-            "force push detected".to_string()
-        );
-    }
-
-    if cmd.contains("curl")
-        && cmd.contains('|')
-        && cmd.contains("bash")
-    {
-        return Decision::Review(
-            "remote script execution".to_string()
-        );
+    if let Some(review_rules) = config.review {
+        for rule in review_rules {
+            if cmd.contains(&rule) {
+                return Decision::Review(format!(
+                    "matched review rule '{}'",
+                    rule
+                ));
+            }
+        }
     }
 
     Decision::Allow
