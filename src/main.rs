@@ -3,6 +3,7 @@ use std::io::{self, BufRead, Read, Write};
 use std::thread;
 
 mod ast;
+mod viz;
 
 fn main() -> anyhow::Result<()> {
     // Initialize the native PTY system subsystem
@@ -81,9 +82,20 @@ fn main() -> anyhow::Result<()> {
             let _ = master_writer.write_all(b"\n"); 
             let _ = master_writer.flush();
         } 
-        // 3. Normal Execution
-        else {
-            let _ = master_writer.write_all(line.as_bytes());
+        // 3. The Visual Mapper
+        else if trimmed.starts_with("map-dir") {
+            match crate::viz::generate_html_map() {
+                Ok(filename) => {
+                    let msg = format!("\r\n[VISUALIZER] Interactive codebase map generated at: ./{}\r\n", filename);
+                    let _ = io::stdout().write_all(msg.as_bytes());
+                }
+                Err(e) => {
+                    let err_msg = format!("\r\n[VIZ ERROR] Failed to generate map: {}\r\n", e);
+                    let _ = io::stdout().write_all(err_msg.as_bytes());
+                }
+            }
+            let _ = io::stdout().flush();
+            let _ = master_writer.write_all(b"\n");
             let _ = master_writer.flush();
         }
         line.clear();    }
