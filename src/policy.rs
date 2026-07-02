@@ -22,7 +22,7 @@ pub fn evaluate(command: &str) -> Decision {
     }
 
     if cmd.contains("curl")
-        && cmd.contains("|")
+        && cmd.contains('|')
         && cmd.contains("bash")
     {
         return Decision::Review(

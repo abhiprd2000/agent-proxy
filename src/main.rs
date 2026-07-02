@@ -4,6 +4,7 @@ use std::thread;
 
 mod ast;
 mod viz;
+mod policy;
 
 fn main() -> anyhow::Result<()> {
     // Initialize the native PTY subsystem
