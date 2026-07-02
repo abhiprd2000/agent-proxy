@@ -3,6 +3,7 @@ use std::io::{self, BufRead, Read, Write};
 use std::thread;
 
 mod ast;
+mod audit;
 mod config;
 mod policy;
 mod viz;
@@ -10,7 +11,6 @@ mod viz;
 fn main() -> anyhow::Result<()> {
 let pty_system = NativePtySystem::default();
 
-```
 let pair = pty_system.openpty(PtySize {
     rows: 24,
     cols: 80,
@@ -51,6 +51,8 @@ while let Ok(n) = reader.read_line(&mut line) {
 
     match policy::evaluate(trimmed) {
         policy::Decision::Block(reason) => {
+            audit::log("BLOCK", trimmed);
+
             let warning = format!(
                 "\r\n[AGENTPROXY BLOCK]\r\nReason: {}\r\nCommand: {}\r\n",
                 reason,
@@ -84,9 +86,13 @@ while let Ok(n) = reader.read_line(&mut line) {
             io::stdin().read_line(&mut approval)?;
 
             if approval.trim().eq_ignore_ascii_case("y") {
+                audit::log("REVIEW_ALLOW", trimmed);
+
                 let _ = master_writer.write_all(line.as_bytes());
                 let _ = master_writer.flush();
             } else {
+                audit::log("REVIEW_DENY", trimmed);
+
                 let _ = io::stdout()
                     .write_all(b"\r\nCommand cancelled.\r\n");
                 let _ = io::stdout().flush();
@@ -95,6 +101,8 @@ while let Ok(n) = reader.read_line(&mut line) {
 
         policy::Decision::Allow => {
             if trimmed.starts_with("cat-min ") {
+                audit::log("ALLOW", trimmed);
+
                 let filename =
                     trimmed.trim_start_matches("cat-min ").trim();
 
@@ -142,6 +150,8 @@ while let Ok(n) = reader.read_line(&mut line) {
                 let _ = master_writer.write_all(b"\n");
                 let _ = master_writer.flush();
             } else if trimmed.starts_with("map-dir") {
+                audit::log("ALLOW", trimmed);
+
                 match crate::viz::generate_html_map() {
                     Ok(filename) => {
                         let msg = format!(
@@ -168,6 +178,8 @@ while let Ok(n) = reader.read_line(&mut line) {
                 let _ = master_writer.write_all(b"\n");
                 let _ = master_writer.flush();
             } else {
+                audit::log("ALLOW", trimmed);
+
                 let _ = master_writer.write_all(line.as_bytes());
                 let _ = master_writer.flush();
             }
@@ -178,6 +190,5 @@ while let Ok(n) = reader.read_line(&mut line) {
 }
 
 Ok(())
-```
 
 }
