@@ -1,28 +1,64 @@
-# agent-proxy
+# AgentProxy
 
-A low-latency, systems-level PTY proxy for AI agents, featuring autonomous LLM-in-the-loop security guardrails and universal AST-based token compression.
+A firewall between AI coding agents and your terminal.
 
-## Technical Overview
+AgentProxy sits between an AI agent and a shell, intercepting commands before execution.
 
-`agent-proxy` implements a pseudo-terminal (PTY) wrapper in Rust. It functions as a transparent middleware layer between a parent shell and a child process, intercepting the `stdin`/`stdout` byte stream to perform real-time security heuristic filtering and on-demand AST minification.
+It allows developers to:
+
+* Block destructive commands
+* Review risky actions
+* Audit agent behavior
+* Enforce terminal policies
+
+## Why?
+
+AI coding agents can execute shell commands.
+
+Most terminal environments provide little visibility into what an agent is about to do.
+
+AgentProxy adds a policy layer between the agent and the operating system.
+
+## Current Features
+
+### Command Interception
+
+AgentProxy runs a shell through a PTY proxy and inspects commands before execution.
+
+Examples:
+
+* `rm -rf`
+* `git push --force`
+* custom blocked commands
+
+### AST Compression
+
+Built-in Tree-sitter support for:
+
+* Rust
+* Python
+
+Useful for token reduction and code analysis workflows.
+
+### Codebase Visualization
+
+Generate an interactive graph of a repository structure.
 
 ## Architecture
 
-* **PTY Bridge:** Uses `portable-pty` to handle POSIX terminal emulation.
-* **AST Parser:** Integrates `tree-sitter` C-bindings to perform language-agnostic structural parsing.
-* **Security Logic:** Implements a byte-stream filter that detects destructive shell patterns (`rm -rf`, `git push -f`) and injects synthetic terminal errors back to the caller process, preventing rogue execution without process termination.
-* **Visualizer:** A recursive directory crawler that outputs a JSON-based structure for `vis.js` graph rendering.
+AI Agent
 
-## Build Requirements
+↓
 
-* `rustc` 1.80+ (or latest stable)
-* `cargo`
-* Build essentials (for `tree-sitter` C-binding compilation)
+AgentProxy
 
-```bash
-sudo apt-get install build-essential # Required for C-bindings
+↓
 
-```
+Shell (bash)
+
+↓
+
+Operating System
 
 ## Installation
 
@@ -30,50 +66,21 @@ sudo apt-get install build-essential # Required for C-bindings
 git clone https://github.com/abhiprd2000/agent-proxy.git
 cd agent-proxy
 cargo build --release
-
 ```
 
-## Usage
+## Roadmap
 
-The proxy initializes a sub-shell upon launch. All commands pass through unless they match the intercepted patterns.
+* [ ] Policy engine
+* [ ] YAML configuration
+* [ ] Risk scoring
+* [ ] Approval workflows
+* [ ] Audit logs
+* [ ] Claude Code integration
+* [ ] Codex integration
+* [ ] OpenHands integration
 
-### Token Compression (`cat-min`)
+## Disclaimer
 
-Invokes the `tree-sitter` parser to prune non-essential nodes (comments, documentation, redundant whitespace) from source files.
+AgentProxy is not a sandbox and should not be considered a security boundary.
 
-**Supported Grammars:**
-
-* `rust` (`.rs`)
-* `python` (`.py`)
-
-*To extend support to new languages, add the dependency to `Cargo.toml` and update the `match` arm in `src/ast.rs`.*
-
-### Security Interception
-
-The proxy monitors the byte stream for blacklisted patterns.
-
-* **Trigger:** `rm -rf`, `git push -f`, `drop`
-* **Response:** Packet drop + synthetic `stderr` injection.
-* **Config:** See `src/main.rs` line ~45 to extend the blacklist.
-
-### Visualization (`map-dir`)
-
-Generates `aegis-map.html` in the root directory. This uses a physics-based `vis.js` engine to render the dependency graph.
-
-## Developer Configuration
-
-To extend the AST parser, ensure the language grammar is included in `Cargo.toml` and updated in the `compress_code` function in `src/ast.rs`:
-
-```rust
-// Example grammar registration
-"js" => tree_sitter_javascript::LANGUAGE.into(),
-
-```
-
-## Security Policy
-
-This tool is designed to protect local environments. It does not provide network-level sandbox isolation. Do not treat this as a replacement for containerization (e.g., Docker) for untrusted code execution.
-
-## License
-
-MIT
+It is a command interception and policy enforcement layer.
